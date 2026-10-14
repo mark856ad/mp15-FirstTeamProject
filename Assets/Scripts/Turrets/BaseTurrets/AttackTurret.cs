@@ -38,26 +38,30 @@ public class AttackTurret : BaseTurret, IBuffable
 
     public override void Attack()
     {
-        _target = _targets.GetTarget(_target);
-        if (_target == null) return;
+        // 💡 [방어 코드 1] 발사구와 풀이 존재하는지 먼저 확인
+        if (_bulletPool == null || _muzzlePoint == null) return;
 
-        if (_bullets != null && _muzzlePoint != null)
+        // 💡 [방어 코드 2] 타깃이 없거나, 이미 죽어서 비활성화(오브젝트 풀 반환) 상태라면 발사하지 않음
+        if (_target == null || !_target.gameObject.activeInHierarchy)
         {
-            // 총알 오브젝트를 생성합니다.
-            /*GameObject bulletObj = Instantiate(_bullets, _muzzlePoint.position, _muzzlePoint.rotation);
-            
-            // 생성된 총알 오브젝트에서 Bullet 컴포넌트를 가져옵니다.
-            Bullet bulletScript = bulletObj.GetComponent<Bullet>();
-            
-            if (bulletScript != null)
-            {
-                // 💡 2. 서포트 타워로 인해 실시간 변동된 최종 공격력(this.Damage)을 총알에 세팅합니다.
-                bulletScript.SetDamage(this.Damage);
+            _target = null; // 죽은 타깃 참조 해제
+            return; 
+        }
 
-                // 총알이 날아갈/추적할 타겟을 지정해 줍니다.
-                bulletScript.SetTarget(_target);
-            }*/
-            _bullets = _bulletPool.Pop();
+        // 1. 오브젝트 풀에서 총알을 꺼냅니다. (WakeUp 내부에서 활성화 처리가 된다고 가정)
+        Bullet bulletScript = _bulletPool.Pop();
+
+        if (bulletScript != null)
+        {
+            // 2. 총알의 위치와 회전값을 발사구(_muzzlePoint) 기준으로 맞춥니다.
+            bulletScript.transform.position = _muzzlePoint.position;
+            bulletScript.transform.rotation = _muzzlePoint.rotation;
+
+            // 3. 서포트 타워 등으로 변동된 최종 공격력을 총알에 세팅합니다.
+            bulletScript.SetDamage(this.Damage);
+
+            // 4. 총알이 추적할 타겟을 지정해 줍니다.
+            bulletScript.SetTarget(_target);
         }
     }
 
