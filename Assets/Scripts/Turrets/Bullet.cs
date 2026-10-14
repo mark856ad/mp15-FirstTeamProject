@@ -76,25 +76,28 @@ using UnityEngine;
 
     protected virtual void Move()
     {
-        // 💡 [요청 사항 반영 2] 타깃이 존재하더라도 이미 사망했거나 비활성화(오브젝트 풀 반환) 상태라면 
-        // 유령을 계속 추적하지 않도록 실시간 가드 처리를 거쳐 타깃을 null로 밀어버립니다.
-        if (!TurretTargetList.IsAlive(_target))
+        // 타깃이 비활성화되었는지 검사
+        if (_target != null && !_target.gameObject.activeInHierarchy)
         {
             _target = null;
         }
 
-        // 타깃이 없다면(혹은 방금 사라졌다면) 날아가던 정면 방향 그대로 직진 처리합니다.
         if (_target == null)
         {
-            // 💡 꼬임 방지 팁: 이미 transform.forward가 설정되어 있으므로 Vector3.forward(로컬 정면)로 자연스럽게 전진합니다.
-            transform.Translate(Vector3.forward * speed * Time.deltaTime);
+            // 💡 중요: 유도 성능이 상실되면 유도 방향이 아니라 '총알 자체의 정면'으로 곧장 직진해야 자연스럽습니다.
+            transform.Translate(Vector3.forward * speed * Time.deltaTime, Space.Self);
             return;
         }
 
-        // 타겟이 있는 방향으로 이동 및 회전
+        // 타겟이 있는 방향으로 유도 이동
         Vector3 direction = (_target.position - transform.position).normalized;
         transform.position += direction * speed * Time.deltaTime;
-        transform.forward = direction; // 총알이 몬스터를 바라보도록 회전
+    
+        // 방향이 제로 벡터가 아닐 때만 회전 처리 (안전장치)
+        if (direction != Vector3.zero)
+        {
+            transform.forward = direction; 
+        }
     }
 
     protected virtual void DamageLogic(IDamageable damageable)
